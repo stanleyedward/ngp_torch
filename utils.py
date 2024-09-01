@@ -27,10 +27,10 @@ def train(
     
     for epoch in range(nb_epochs):
         progress_bar.set_description(f"training epoch: {epoch}")
-        for batch in progress_bar:
+        for idx, batch in progress_bar:
             ray_origins = batch[:, :3].to(device)
             ray_directions = batch[:, 3:6].to(device)
-            gt_px_values = batch[:, :6].to(device)
+            gt_px_values = batch[:, 6:].to(device)
             pred_px_values = render_rays(
                 model, ray_origins, ray_directions, hn, hf, nb_bins
             )

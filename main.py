@@ -20,7 +20,7 @@ if __name__ == "__main__":
     T = 2**19
     N_min = 16
     N_max = 2048
-    b = np.exp((np.log(N_max) - np.log(N_min) / (L - 1)))
+    b = np.exp((np.log(N_max) - np.log(N_min)) / (L - 1))
     Nl = [int(np.floor(N_min * b**l)) for l in range(L)]
     model = NGP(T, Nl, 4, device, 3)
     
@@ -42,6 +42,6 @@ if __name__ == "__main__":
     for img_index in progress_bar:
         progress_bar.set_description(f"image: {img_index}")
         test(model=model, device=device, hn=2, hf=6, dataset=testing_dataset, img_index=img_index, nb_bins=192, H=800, W=800)
-    print(f"[INFO] finished testing phase, outputs in novel_views/.")    
+    print(f"[INFO] finished testing phase, outputs in novel_views/.")
     
     

@@ -36,7 +36,7 @@ def render_rays(model, ray_origins, ray_directions, hn=0, hf=0.5, nb_bins=192):
     delta = torch.cat(
         (
             t[:, 1:] - t[:, :-1],
-            torch.tenso([1e10], device=device).expand(ray_origins.shape[0], 1),
+            torch.tensor([1e10], device=device).expand(ray_origins.shape[0], 1),
         ),
         -1,
     )
