@@ -31,9 +31,17 @@ if __name__ == "__main__":
         ])
 
     data_loader = DataLoader(train_dataset, batch_size=2**14, shuffle=True)
+    print(f"[INFO] starting training phase")
     train(model, model_optimizer, data_loader, nb_epochs=1, device=device,
           hn=2,hf=6, nb_bins=192, H=800, W=800)
     
-    for img_index in range(200):
+    print(f"[INFO] Finished training...")
+    
+    print(f"[INFO] starting testing phase")
+    progress_bar = tqdm(range(200), total=200)
+    for img_index in progress_bar:
+        progress_bar.set_description(f"image: {img_index}")
         test(model=model, device=device, hn=2, hf=6, dataset=testing_dataset, img_index=img_index, nb_bins=192, H=800, W=800)
+    print(f"[INFO] finished testing phase, outputs in novel_views/.")    
+    
     
