@@ -26,7 +26,7 @@ class NGP(nn.Module):
         self.pi2 = 2_654_435_761
         self.pi3 = 805_459_861
         
-        self.density = nn.Sequential(
+        self.density_MLP = nn.Sequential(
             nn.Linear(self.F * len(Nl), 64),
             nn.ReLU(),
             nn.Linear(64,16)
@@ -58,7 +58,7 @@ class NGP(nn.Module):
         features = torch.empty((x[mask].shape[0], self.F * len(self.Nl)), device=x.device)
         
         for i, N in enumerate(self.Nl):
-            #computing vertices, bilinear interpolation
+            #computing vertices, trilinear interpolation
             floor = torch.floor(x[mask] * N)    
             ceil = torch.ceil(x[mask] * N)
             num_vertices = 8
@@ -79,4 +79,18 @@ class NGP(nn.Module):
             c = vertices[:, :, 2] = self.pi3
             hash_x = torch.remainder(torch.bitwise_xor(torch.bitwise_xor(a, b), c), self.T)
 
+            #lookup
+            looked_up = self.lookup_tables[str(i)][hash_x].transpose(-1, -2)
+            volume = looked_up.reshape((looked_up.shape[0], 2, 2, 2, 2))
+            features[:, i*2:(i+1)*2] = torch.nn.functional.grid_sample(
+                volume,
+                ((x[mask] * N - floor) - .5).unsqueeze(1).unsqueeze(1).unsqueeze(1)
+                ).squeeze(-1).squeeze(-1).squeeze(-1)
             
+            # couldve used torch.embedding or couldve implemented trilinear interpolation instead of grid sample
+        
+        xi = self.positional_encoding(d[mask])
+        h = self.density_MLP(features)
+        log_sigma[mask] = h[:, 0]
+        color[mask] = self.color_MLP(torch.cat((h, xi), dim=1))
+        return color, torch.exp(log_sigma)
