@@ -91,7 +91,7 @@ class NGP(nn.Module):
                 (ceil[:, 0, None], ceil[:, 1, None], floor[:, 2, None]), dim=1
             )
             vertices[:, 7] = ceil
-    
+
             # hashing
             a = vertices[:, :, 0] * self.pi1
             b = vertices[:, :, 1] * self.pi2
