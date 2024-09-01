@@ -20,8 +20,14 @@ def train(
     W=400,
 ):
     model.train()
-    for _ in range(nb_epochs):
-        for batch in tqdm(dataloader):
+    progress_bar = tqdm(
+        enumerate(dataloader),
+        total=len(dataloader)
+    )
+    
+    for epoch in range(nb_epochs):
+        progress_bar.set_description(f"training epoch: {epoch}")
+        for batch in progress_bar:
             ray_origins = batch[:, :3].to(device)
             ray_directions = batch[:, 3:6].to(device)
             gt_px_values = batch[:, :6].to(device)
@@ -30,10 +36,16 @@ def train(
             )
 
             loss = ((gt_px_values - pred_px_values) ** 2).mean()
+            progress_bar.set_postfix({
+                "loss": loss.item() 
+            })
+            
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
+            
+        torch.save(model.cpu(), 'models/ngp_model')
+        model.to(device)
 
 @torch.no_grad()
 def test(
