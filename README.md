@@ -3,3 +3,6 @@ ref: https://github.com/MaximeVandegar/Papers-in-100-Lines-of-Code/tree/main/Ins
 
 ds: https://drive.google.com/drive/folders/1eO7DXFhWWpauC-9LDhOimtIKxY3yRCIm \
 in the nerf paper they used spherical harmonics for color instead
+#### TODO
+- [ ] ray marching
+- [ ] occupancy grids
