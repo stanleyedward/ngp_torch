@@ -6,4 +6,5 @@ in the nerf paper they used spherical harmonics for color instead
 #### TODO
 - [ ] ray marching
 - [ ] occupancy grids
+- [ ] implement a viewer for training
 - [ ] cuda
