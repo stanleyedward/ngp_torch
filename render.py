@@ -5,7 +5,6 @@ from tqdm import tqdm
 import numpy as np
 from PIL import Image
 
-
 def compute_accumulated_transmittance(alphas):
     accumulated_transmittance = torch.cumprod(alphas, 1)
     return torch.cat(
