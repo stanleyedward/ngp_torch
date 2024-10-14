@@ -9,3 +9,13 @@ in the nerf paper they used spherical harmonics for color instead
 - [ ] implement a viewer for training
 - [ ] tinycudnn
 - [ ] cuda
+
+
+### setup 
+```sh
+conda install -c conda-forge cuda=12.1 gxx python=3.11.8
+pip3 install torch torchvision torchaudio #torch 2.4.1 cu12.1
+pip install git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
+pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.1+cu121.html
+pip install einops kornia matplotlib opencv-python lpips imageio imageio-ffmpeg scipy pymcubes trimesh dearpygui lightning
+```
