@@ -213,3 +213,7 @@ gcc
 
 #misc
 *.txt
+1_0
+2_0
+Synthetic_NSVF/*
+!Synthetic_NSVF/*.txt
