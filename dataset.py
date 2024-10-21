@@ -4,6 +4,8 @@ import numpy as np
 import os
 import torch
 from kornia import create_meshgrid
+from glob import glob
+from tqdm import tqdm
 
 class NSVFDataset(Dataset):
     def __init__(self, root_dir:str, split:str="train", downsample:float=1.0, 
@@ -27,6 +29,13 @@ class NSVFDataset(Dataset):
                                  [0, 0,     1]])
         
         self.image_size = (w, h)
+        self.directions = get_ray_directions(h, w, K_intrinsics)
+        
+        if split.startswith('train'):
+            rays_train = self.read_meta('train')
+            self.rays = torch.cat(list(rays_train.values()))
+        else:
+            self.rays = self.read_meta(split)
     
     def define_transforms(self):
         self.transform = T.ToTensor()
@@ -37,6 +46,31 @@ class NSVFDataset(Dataset):
     def __getitem__(self, index):
         pass
     
+def read_meta(self, split):
+    rays = {}
+    
+    if split == 'train': 
+        prefix = '0_'
+    elif split == 'val':
+        prefix = '1_'
+    elif 'Synthetic' in self.root_dir:
+        prefix = '2_'
+    elif split == 'test':
+        prefix = '1_' 
+        
+    imgs = sorted(glob(os.path.join(self.root_dir, 'rgb', prefix+'*.png')))
+    poses = sorted(glob(os.path.join(self.root_dir, 'pose', prefix+'*.txt')))
+    
+    print(f"[INFO] len:{len(imgs)} split: {split}")
+    for idx, (img, pose) in enumerate(tqdm(zip(imgs, poses))):
+        cam2world = np.loadtxt(pose)[:3]
+        cam2world[:, 1:3] *= -1
+        cam2world[:, 3] -= self.shift
+        cam2world[:, 3] /= self.scale
+        
+def get_rays(dirs, cam2world):
+    pass
+
 def get_ray_directions(height:int , width:int, K_intrinsics):
     grid = create_meshgrid(height=height, width=width, normalized_coordinates=False)[0] #[H,W,2]
     i, j = grid.unbind(-1)
