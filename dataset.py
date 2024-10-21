@@ -2,6 +2,8 @@ from torch.utils.data import Dataset
 from torchvision import transforms as T
 import numpy as np
 import os
+import torch
+from kornia import create_meshgrid
 
 class NSVFDataset(Dataset):
     def __init__(self, root_dir:str, split:str="train", downsample:float=1.0, 
@@ -35,5 +37,25 @@ class NSVFDataset(Dataset):
     def __getitem__(self, index):
         pass
     
-def get_ray_directions(Height:int , Width:int, K_intrinsics):
-    pass
+def get_ray_directions(height:int , width:int, K_intrinsics):
+    grid = create_meshgrid(height=height, width=width, normalized_coordinates=False)[0] #[H,W,2]
+    i, j = grid.unbind(-1)
+    
+    f_x = K_intrinsics[0, 0]
+    f_y = K_intrinsics[1, 1]
+    c_x = K_intrinsics[0, 2]
+    c_y = K_intrinsics[1, 2]
+    
+    directions = torch.stack([
+        (i-c_x+0.5)/f_x,
+        -(j-c_y+0.5)/f_y,
+        -torch.ones_like(i)]
+        , -1)
+    
+    #flatten
+    directions = directions.reshape(-1, 3)
+    return directions
+    
+    
+    
+    
