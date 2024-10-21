@@ -215,5 +215,7 @@ gcc
 *.txt
 1_0
 2_0
+3_0
 Synthetic_NSVF/*
 !Synthetic_NSVF/*.txt
+test.py
