@@ -6,6 +6,8 @@ import torch
 from kornia import create_meshgrid
 from glob import glob
 from tqdm import tqdm
+from PIL import Image
+import einops
 
 class NSVFDataset(Dataset):
     def __init__(self, root_dir:str, split:str="train", downsample:float=1.0, 
@@ -36,15 +38,28 @@ class NSVFDataset(Dataset):
             self.rays = torch.cat(list(rays_train.values()))
         else:
             self.rays = self.read_meta(split)
-    
+
     def define_transforms(self):
         self.transform = T.ToTensor()
-        
+
     def __len__(self):
-        pass
-    
+        #TODO FIX
+        return len(self.rays)
+
     def __getitem__(self, index):
-        pass
+        if self.split.startswith('train'):
+            idx = np.random.randint(len(self.rays))
+            sample = {
+                'rays': self.rays[idx, :6],
+                'rgb': self.rays[idx, 6:9],
+                'idx': idx
+                }
+        else:
+            sample = {
+                'rays': self.rays[idx][:, :6],
+                'rgb': self.rays[idx][:, 6:9]
+                     }
+        return sample
     
 def read_meta(self, split):
     rays = {}
@@ -67,9 +82,22 @@ def read_meta(self, split):
         cam2world[:, 1:3] *= -1
         cam2world[:, 3] -= self.shift
         cam2world[:, 3] /= self.scale
+        rays_o, rays_d = get_rays(self.directions, torch.FloatTensor(cam2world))
         
-def get_rays(dirs, cam2world):
-    pass
+        img = Image.open(img)
+        img = img.resize(self.img_size, Image.LANCZOS)
+        img = self.transform(img) #[c,h,w]
+        img = einops.rearrange(img, 'c h w -> (h w) c')
+        rays[idx] = torch.cat([rays_o, rays_d, img], 1)
+        
+        return rays
+        
+def get_rays(directions, cam2world):
+    rays_directions = directions @ cam2world[:, :3].T
+    rays_directions /= torch.norm(rays_directions, dim=-1, keepdim=True)
+    rays_origins = cam2world[:, 3].expand(rays_directions.shape) #[h*w,3]
+    return rays_origins, rays_directions
+
 
 def get_ray_directions(height:int , width:int, K_intrinsics):
     grid = create_meshgrid(height=height, width=width, normalized_coordinates=False)[0] #[H,W,2]
