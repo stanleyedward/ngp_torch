@@ -74,7 +74,8 @@ class NSVFDataset(Dataset):
         self.transform = T.ToTensor()
 
     def __len__(self):
-        #TODO FIX
+        if self.split.startswith('train'):
+            return 1000 * self.batch_size
         return len(self.rays)
 
     def __getitem__(self, index):
