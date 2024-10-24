@@ -11,7 +11,7 @@ import einops
 
 class NSVFDataset(Dataset):
     def __init__(self, root_dir:str, split:str="train", downsample:float=1.0, 
-                    batch_size:int=32, **kwargs):
+                    batch_size:int=1, **kwargs):
         super().__init__()
         self.root_dir = root_dir
         self.split = split
@@ -26,7 +26,7 @@ class NSVFDataset(Dataset):
         with open(os.path.join(root_dir, 'intrinsics.txt')) as f:
             f_x = f_y = float(f.readline().split()[0])
         w = h = int(800*downsample)
-        K_intrinsics = np.float([[f_x, 0, w/2],
+        K_intrinsics = np.float32([[f_x, 0, w/2],
                                  [0, f_y, h/2],
                                  [0, 0,     1]])
         
@@ -38,6 +38,37 @@ class NSVFDataset(Dataset):
             self.rays = torch.cat(list(rays_train.values()))
         else:
             self.rays = self.read_meta(split)
+            
+    def read_meta(self, split):
+        rays = {}
+        
+        if split == 'train': 
+            prefix = '0_'
+        elif split == 'val':
+            prefix = '1_'
+        elif 'Synthetic' in self.root_dir:
+            prefix = '2_'
+        elif split == 'test':
+            prefix = '1_' 
+            
+        imgs = sorted(glob(os.path.join(self.root_dir, 'rgb', prefix+'*.png')))
+        poses = sorted(glob(os.path.join(self.root_dir, 'pose', prefix+'*.txt')))
+        
+        print(f"[INFO] len:{len(imgs)} split: {split}")
+        for idx, (img, pose) in enumerate(tqdm(zip(imgs, poses))):
+            cam2world = np.loadtxt(pose)[:3]
+            cam2world[:, 1:3] *= -1
+            cam2world[:, 3] -= self.shift
+            cam2world[:, 3] /= self.scale
+            rays_o, rays_d = get_rays(self.directions, torch.FloatTensor(cam2world))
+            
+            img = Image.open(img)
+            img = img.resize(self.image_size, Image.LANCZOS)
+            img = self.transform(img) #[c,h,w]
+            img = einops.rearrange(img, 'c h w -> (h w) c')
+            rays[idx] = torch.cat([rays_o, rays_d, img], 1)
+            
+            return rays
 
     def define_transforms(self):
         self.transform = T.ToTensor()
@@ -48,49 +79,19 @@ class NSVFDataset(Dataset):
 
     def __getitem__(self, index):
         if self.split.startswith('train'):
-            idx = np.random.randint(len(self.rays))
+            index = np.random.randint(len(self.rays))
             sample = {
-                'rays': self.rays[idx, :6],
-                'rgb': self.rays[idx, 6:9],
-                'idx': idx
+                'rays': self.rays[index, :6],
+                'rgb': self.rays[index, 6:9],
+                'idx': index
                 }
         else:
             sample = {
-                'rays': self.rays[idx][:, :6],
-                'rgb': self.rays[idx][:, 6:9]
+                'rays': self.rays[index][:, :6],
+                'rgb': self.rays[index][:, 6:9]
                      }
         return sample
     
-def read_meta(self, split):
-    rays = {}
-    
-    if split == 'train': 
-        prefix = '0_'
-    elif split == 'val':
-        prefix = '1_'
-    elif 'Synthetic' in self.root_dir:
-        prefix = '2_'
-    elif split == 'test':
-        prefix = '1_' 
-        
-    imgs = sorted(glob(os.path.join(self.root_dir, 'rgb', prefix+'*.png')))
-    poses = sorted(glob(os.path.join(self.root_dir, 'pose', prefix+'*.txt')))
-    
-    print(f"[INFO] len:{len(imgs)} split: {split}")
-    for idx, (img, pose) in enumerate(tqdm(zip(imgs, poses))):
-        cam2world = np.loadtxt(pose)[:3]
-        cam2world[:, 1:3] *= -1
-        cam2world[:, 3] -= self.shift
-        cam2world[:, 3] /= self.scale
-        rays_o, rays_d = get_rays(self.directions, torch.FloatTensor(cam2world))
-        
-        img = Image.open(img)
-        img = img.resize(self.img_size, Image.LANCZOS)
-        img = self.transform(img) #[c,h,w]
-        img = einops.rearrange(img, 'c h w -> (h w) c')
-        rays[idx] = torch.cat([rays_o, rays_d, img], 1)
-        
-        return rays
         
 def get_rays(directions, cam2world):
     rays_directions = directions @ cam2world[:, :3].T
