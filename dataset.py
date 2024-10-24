@@ -11,7 +11,7 @@ import einops
 
 class NSVFDataset(Dataset):
     def __init__(self, root_dir:str, split:str="train", downsample:float=1.0, 
-                    batch_size:int=1, **kwargs):
+                    batch_size:int=8192, **kwargs):
         super().__init__()
         self.root_dir = root_dir
         self.split = split
@@ -26,6 +26,7 @@ class NSVFDataset(Dataset):
         with open(os.path.join(root_dir, 'intrinsics.txt')) as f:
             f_x = f_y = float(f.readline().split()[0])
         w = h = int(800*downsample)
+        f_x *= downsample; f_y *= downsample
         K_intrinsics = np.float32([[f_x, 0, w/2],
                                  [0, f_y, h/2],
                                  [0, 0,     1]])
@@ -66,7 +67,7 @@ class NSVFDataset(Dataset):
             img = img.resize(self.image_size, Image.LANCZOS)
             img = self.transform(img) #[c,h,w]
             img = einops.rearrange(img, 'c h w -> (h w) c')
-            rays[idx] = torch.cat([rays_o, rays_d, img], 1)
+            rays[idx] = torch.cat([rays_o, rays_d, img], dim=1)
             
             return rays
 

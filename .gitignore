@@ -218,4 +218,6 @@ gcc
 3_0
 Synthetic_NSVF/*
 !Synthetic_NSVF/*.txt
-test.py
+testing.py
+ray_utils.py
+datasets
