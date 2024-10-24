@@ -5,6 +5,7 @@ from tqdm import tqdm
 import numpy as np
 from PIL import Image
 
+
 def compute_accumulated_transmittance(alphas):
     accumulated_transmittance = torch.cumprod(alphas, 1)
     return torch.cat(
@@ -14,6 +15,8 @@ def compute_accumulated_transmittance(alphas):
         ),
         dim=-1,
     )
+
+
 # the paper uses ray marching and an occupancy grid, used volumetric rendering here
 def render_rays(model, ray_origins, ray_directions, hn=0, hf=0.5, nb_bins=192):
     device = ray_origins.device
