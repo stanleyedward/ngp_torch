@@ -184,5 +184,35 @@ class FullyFusedNGP(nn.Module):
             }
         )
         
-        def forward():
-            raise NotImplementedError()
+        self.direction_encoding = tcnn.Encoding(
+            n_input_dims=3,
+            encoding_config={
+                "otype": "SphericalHarmonics",
+                "degree": 4,
+            }
+        )
+        
+        self.rgb_network = tcnn.Network(
+            n_input_dims=32, #16 from (hash_and_mlp) position + 16 from (direction_encoding)direction
+            n_output_dims=3, #RGB
+            network_config={
+                "otype": "FullyFusedMLP",
+                "activation": "ReLU",
+                "output_activation": "Sigmoid", #[0,1] range for each color channel
+                "n_neurons": 64,
+                "n_hidden_layers": 2,
+            }
+        )
+        
+        def forward(self, x, d, return_sigma:bool = False):
+            x = (x - self.xyz_min) / (self.xyz_max - self.xyz_min)
+            h = self.hash_and_mlp(x)
+            sigmas = torch.exp(h[:, 0])
+            if return_sigma: return sigmas
+            
+            d = self.direction_encoding((d+1)/2)
+            rgbs = self.rgb_network(torch.cat([d, h], 1))
+            
+            return sigmas, rgbs
+        
+        
