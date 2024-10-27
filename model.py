@@ -215,4 +215,6 @@ class FullyFusedNGP(nn.Module):
             
             return sigmas, rgbs
         
+        def update_grid(self):
+            raise NotImplementedError()
         
