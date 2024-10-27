@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import numpy as np
 from PIL import Image
+import tinycudann as tcnn
 
 
 class NGP(nn.Module):
@@ -123,3 +124,65 @@ class NGP(nn.Module):
         log_sigma[mask] = h[:, 0]
         color[mask] = self.color_MLP(torch.cat((h, xi), dim=1))
         return color, torch.exp(log_sigma)
+
+class FullyFusedNGP(nn.Module):
+    def __init__(self, scale):
+        super().__init__()
+    
+        self.scale = scale
+        self.register_buffer('center', torch.zeros(1, 3))
+        self.register_buffer('xyz_min', -torch.ones(1, 3)*scale)
+        self.register_buffer('xyz_max', torch.ones(1, 3)*scale)
+        self.register_buffer('half_size', (self.xyz_max - self.xyz_min) / 2)
+
+        self.cascades = 1+int(np.ceil(np.log2(scale)))
+        self.grid_size = 128
+        self.register_buffer('density_grid', torch.zeros(self.cascades, self.grid_size**3))
+        self.register_buffer('density_bitfield', torch.zeros(self.cascades*self.grid_size**3 // 8, dtype=torch.uint8))
+        
+        L = 16
+        F = 2
+        log2_T = 19
+        N_min = 16
+        
+        self.hash_and_mlp = tcnn.NetworkWithInputEncoding(
+            n_input_dims=3,
+            n_output_dims=16,
+            encoding_config= \
+                {
+                    "otype": "Grid",                # Component type.
+                    "type": "Hash",                 # Type of backing storage of the
+                                                    # grids. Can be "Hash", "Tiled"
+                                                    # or "Dense".
+                    "n_levels": L,                  # Number of levels (resolutions)
+                    "n_features_per_level": F,      # Dimensionality of feature vector
+                                                    # stored in each level's entries.
+                    "log2_hashmap_size": log2_T,    # If type is "Hash", is the base-2
+                                                    # logarithm of the number of elements
+                                                    # in each backing hash table.
+                    "base_resolution": N_min,       # The resolution of the coarsest le-
+                                                    # vel is base_resolution^input_dims.
+                    "per_level_scale": \
+                    np.exp(np.log(2048*scale/N_min) / (L-1)),
+                                                    # The geometric growth factor, i.e.
+                                                    # the factor by which the resolution
+                                                    # of each grid is larger (per axis)
+                                                    # than that of the preceding level.
+                    "interpolation": "Linear"       # How to interpolate nearby grid
+                                                    # lookups. Can be "Nearest", "Linear",
+                                                    # or "Smoothstep" (for smooth deri-
+                                                    # vatives).
+                },
+           network_config=\
+            {
+                "otype": "FullyFusedMLP",    # Component type.
+                "activation": "ReLU",        # Activation of hidden layers.
+                "output_activation": "None", # Activation of the output layer.
+                "n_neurons": 64,            # Neurons in each hidden layer.
+                                             # May only be 16, 32, 64, or 128.
+                "n_hidden_layers": 1,        # Number of hidden layers.
+            }
+        )
+        
+        def forward():
+            raise NotImplementedError()
