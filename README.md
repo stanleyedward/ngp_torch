@@ -4,9 +4,10 @@ ref: https://github.com/MaximeVandegar/Papers-in-100-Lines-of-Code/tree/main/Ins
 ds: https://drive.google.com/drive/folders/1eO7DXFhWWpauC-9LDhOimtIKxY3yRCIm \
 in the nerf paper they used spherical harmonics for color instead
 #### TODO
-- [ ] dataset class
-- [ ] tcnn hashing
-- [ ] tcnn forward
+- [x] dataset class
+- [x] tcnn hashing
+- [x] tcnn forward
+- [ ] occupancy grid
 - [ ] bindingcuda
 - [ ] cuda loss
 - [ ] cuda ray marching
