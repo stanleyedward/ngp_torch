@@ -17,3 +17,17 @@ torch::Tensor morton3D_invert(const torch::Tensor indices){
     return morton3D_invert_cu(indices);
 }
 
+
+TORCH_LIBRARY(rendering, m) {
+  m.def("morton3D(Tensor a) -> Tensor");
+  m.def("morton3D_invert(Tensor a) -> Tensor");
+}
+
+TORCH_LIBRARY_IMPL(rendering, CPU, m) {
+  m.impl("morton3D", &morton3D);
+  m.impl("morton3D_invert", &morton3D_invert);
+}
+
+// TORCH_LIBRARY_IMPL(extension_cpp, CUDA, m) {
+//   m.impl("mymuladd", &mymuladd_cuda);
+// }

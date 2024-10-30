@@ -12,3 +12,5 @@ torch::Tensor morton3D_cu(const torch::Tensor coords){
 torch::Tensor morton3D_invert_cu(const torch::Tensor indices){
     return indices;
 }
+
+
