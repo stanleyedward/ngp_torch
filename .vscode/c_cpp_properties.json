@@ -6,6 +6,8 @@
                 "${workspaceFolder}/**",
                 "~/miniconda3/envs/torch241cuda121/include/python3.11",
                 "~/miniconda3/envs/torch241cuda121/lib/python3.11/site-packages/torch/include",
+                // "~/miniconda3/envs/torch241cuda121/targets/x86_64-linux/include",
+                // "~/miniconda3/envs/torch241cuda121/lib/python3.11/site-packages/nvidia/cuda_runtime/include",
                 "~/miniconda3/envs/torch241cuda121/lib/python3.11/site-packages/torch/include/torch/csrc/api/include"
             ],
             "defines": [],
