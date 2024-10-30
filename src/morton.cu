@@ -1,7 +1,7 @@
 // define morton code encoding/decoding
-#include "helper_math.h"
+#include "helper_math.cuh"
 #include "utils.h"
-#include "pcg32.h"
+#include "pcg32.cuh"
 #include <torch/extension.h>
 
 
