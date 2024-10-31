@@ -41,7 +41,7 @@ __global__ void morton3D_kernel(
     if (n >= N)
         return;
 
-    // Access coords as a flattened array, with stride of 3
+    // access coords as a flattened array, with stride of 3
     const int x = coords[n * 3 + 0];
     const int y = coords[n * 3 + 1];
     const int z = coords[n * 3 + 2];
@@ -57,22 +57,57 @@ at::Tensor morton3D_cuda(const at::Tensor coords)
     TORCH_INTERNAL_ASSERT(coords.device().type() == at::DeviceType::CUDA);
 
     const int N = coords.size(0);
-
-    // Make coords contiguous if it isn't already
     at::Tensor coords_contig = coords.contiguous();
-
-    // Create output tensor
     at::Tensor indices = torch::zeros({N}, coords.options());
 
-    // Get raw pointers
+    // raw pointers
     const int *coords_ptr = coords_contig.data_ptr<int>();
     int *indices_ptr = indices.data_ptr<int>();
 
-    // Launch kernel
     const int numThreadsPerBlock = 256;
     const int numBlocks = (N + numThreadsPerBlock - 1) / numThreadsPerBlock;
 
     morton3D_kernel<<<numBlocks, numThreadsPerBlock>>>(N, coords_ptr, indices_ptr);
 
     return indices;
+}
+
+__global__ void morton3D_invert_kernel(
+    int N,
+    const int *indices, // [N]
+    int *coords         // [N, 3]
+)
+{
+    const int n = threadIdx.x + blockIdx.x * blockDim.x;
+    if (n >= N)
+        return;
+
+    const int ind = indices[n];
+    // write to coords as a flattened array with stride of 3
+    coords[n * 3 + 0] = __morton3D_invert(ind >> 0);
+    coords[n * 3 + 1] = __morton3D_invert(ind >> 1);
+    coords[n * 3 + 2] = __morton3D_invert(ind >> 2);
+}
+
+at::Tensor morton3D_invert_cuda(const at::Tensor indices)
+{
+    TORCH_CHECK(indices.dim() == 1, "indices must be 1D");
+    TORCH_CHECK(indices.dtype() == at::kInt);
+    TORCH_INTERNAL_ASSERT(indices.device().type() == at::DeviceType::CUDA);
+
+    const int N = indices.size(0);
+
+    at::Tensor indices_contig = indices.contiguous();
+    at::Tensor coords = torch::zeros({N, 3}, indices.options());
+
+    // raw pointers
+    const int *indices_ptr = indices_contig.data_ptr<int>();
+    int *coords_ptr = coords.data_ptr<int>();
+
+    const int numThreadsPerBlock = 256;
+    const int numBlocks = (N + numThreadsPerBlock - 1) / numThreadsPerBlock;
+
+    morton3D_invert_kernel<<<numBlocks, numThreadsPerBlock>>>(N, indices_ptr, coords_ptr);
+
+    return coords;
 }
