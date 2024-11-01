@@ -6,6 +6,7 @@ import numpy as np
 from PIL import Image
 import tinycudann as tcnn
 import rendering
+from custom_functions import TruncExp
 
 
 class NGP(nn.Module):
@@ -205,10 +206,12 @@ class FullyFusedNGP(nn.Module):
             }
         )
         
+        self.truncated_exponential = TruncExp.apply
+        
     def forward(self, x, d, return_sigma:bool = False):
         x = (x - self.xyz_min) / (self.xyz_max - self.xyz_min)
         h = self.hash_and_mlp(x)
-        sigmas = torch.exp(h[:, 0])
+        sigmas = self.truncated_exponential(h[:, 0])
         if return_sigma: return sigmas
         
         d = self.direction_encoding((d+1)/2)
