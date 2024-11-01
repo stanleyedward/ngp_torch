@@ -5,15 +5,17 @@ https://pytorch.org/tutorials/advanced/cpp_extension.html
 https://github.com/pytorch/extension-cpp/
 https://pytorch.org/docs/stable/notes/extending.html
 
+### autograd
+https://pytorch.org/tutorials/intermediate/custom_function_double_backward_tutorial.html
+https://pytorch.org/docs/stable/notes/extending.html
+
 ds: https://drive.google.com/drive/folders/1eO7DXFhWWpauC-9LDhOimtIKxY3yRCIm \
 in the nerf paper they used spherical harmonics for color instead
 #### TODO
 - [x] dataset class
 - [x] tcnn hashing
 - [x] tcnn forward
-- [ ] occupancy grid
-- [ ] bindingcuda
-- [ ] cuda loss
+- [x] occupancy grid updates
 - [ ] cuda ray marching
 - [ ] implement a viewer for training
 
