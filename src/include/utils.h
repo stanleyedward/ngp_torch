@@ -9,3 +9,9 @@
 torch::Tensor morton3D_cu(const torch::Tensor coords);
 torch::Tensor morton3D_invert_cu(const torch::Tensor indices);
 
+void packbits_cu(
+    torch::Tensor density_grid,
+    const float density_threshold,
+    torch::Tensor density_bitfield
+);
+

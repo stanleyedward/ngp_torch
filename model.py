@@ -264,7 +264,8 @@ class FullyFusedNGP(nn.Module):
             torch.maximum(self.density_grid[valid_mask]*decay, tmp_grid[valid_mask])
         self.mean_density = self.density_grid.clamp(min=0).mean().item()
         
-        #TODO packbits
-        raise NotImplementedError()
+        #packbits
+        rendering.packbits(self.density_grid, min(self.mean_density, density_threshold),
+                      self.density_bitfield)
             
         
