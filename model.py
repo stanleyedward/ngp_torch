@@ -5,6 +5,7 @@ from tqdm import tqdm
 import numpy as np
 from PIL import Image
 import tinycudann as tcnn
+import rendering
 
 
 class NGP(nn.Module):
@@ -204,17 +205,66 @@ class FullyFusedNGP(nn.Module):
             }
         )
         
-        def forward(self, x, d, return_sigma:bool = False):
-            x = (x - self.xyz_min) / (self.xyz_max - self.xyz_min)
-            h = self.hash_and_mlp(x)
-            sigmas = torch.exp(h[:, 0])
-            if return_sigma: return sigmas
-            
-            d = self.direction_encoding((d+1)/2)
-            rgbs = self.rgb_network(torch.cat([d, h], 1))
-            
-            return sigmas, rgbs
+    def forward(self, x, d, return_sigma:bool = False):
+        x = (x - self.xyz_min) / (self.xyz_max - self.xyz_min)
+        h = self.hash_and_mlp(x)
+        sigmas = torch.exp(h[:, 0])
+        if return_sigma: return sigmas
         
-        def update_grid(self):
-            raise NotImplementedError()
+        d = self.direction_encoding((d+1)/2)
+        rgbs = self.rgb_network(torch.cat([d, h], 1))
+        
+        return sigmas, rgbs
+    
+    @torch.no_grad()
+    def sample_all_cells(self):
+        indices = rendering.morton3D(self.grid_coords).long()
+        cells = [(indices, self.grid_coords)] * self.cascades
+        
+    @torch.no_grad()
+    def sample_uniform_and_occupied_cells(self, M):
+        cells = []
+        for c in range(self.cascades):
+            #uniform cells
+            coords1 = torch.randint(self.grid_size, (M, 3), dtype=torch.int32, device=self.density_grid.device)
+            indices1 = rendering.morton3D(coords1).long()
+            #occupied cells
+            indices2 = torch.nonzero(self.density_grid[c]>0)[:, 0]
+            rand_idx = torch.randint(len(indices2), (M,), device=self.density_grid.device)
+            indices2 = indices2[rand_idx]
+            coords2 = rendering.morton3D_invert(indices2.int())
+            #concat
+            cells += [(torch.cat([indices1, indices2]), torch.cat([coords1, coords2]))]
+            
+        return cells
+    @torch.no_grad()
+    def update_density_grid(self, density_threshold, warmup=False, decay=0.95):
+        #create temp grid
+        tmp_grid = -torch.ones_like(self.density_grid)
+        if warmup: #first 256 steps
+            cells = self.sample_all_cells()
+        else:
+            M = self.grid_size**3//4
+            cells = self.sample_uniform_and_occupied_cells(M)
+        #infer sigmas
+        for c in range(self.cascades):
+            indices, coords = cells[c]
+            xyzs = coords.float()/(self.grid_size-1)*2-1 # in [-1, 1]
+            s = min(2**c, self.scale)
+            half_grid_size = s/self.grid_size
+            # scale to current cascade's resolution
+            xyzs_c = xyzs * (s-half_grid_size)
+            # add noise in [-hgs, hgs]
+            xyzs_c += (torch.rand_like(xyzs_c)*2-1) * half_grid_size
+            tmp_grid[c, indices] = self.density(xyzs_c)
+        
+        # ema update
+        valid_mask = (self.density_grid>=0) & (tmp_grid>=0)
+        self.density_grid[valid_mask] = \
+            torch.maximum(self.density_grid[valid_mask]*decay, tmp_grid[valid_mask])
+        self.mean_density = self.density_grid.clamp(min=0).mean().item()
+        
+        #TODO packbits
+        raise NotImplementedError()
+            
         
