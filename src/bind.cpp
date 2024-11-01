@@ -30,6 +30,6 @@ void packbits(
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m){
   m.def("morton3D", &morton3D);
-  m.def("packbits", &packbits);
   m.def("morton3D_invert", &morton3D_invert);
+  m.def("packbits", &packbits);
 }
