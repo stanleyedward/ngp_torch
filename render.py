@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import numpy as np
 from PIL import Image
+import rendering
 
 
 def compute_accumulated_transmittance(alphas):
@@ -55,3 +56,16 @@ def render_rays(model, ray_origins, ray_directions, hn=0, hf=0.5, nb_bins=192):
     c = (weights * color.reshape(x.shape)).sum(dim=1)
     weight_sum = weights.sum(-1).sum(-1)  # regularization for white background
     return c + 1 - weight_sum.unsqueeze(-1)
+
+def render(model, rays, **kwagrs):
+    rays_o = rays[:, 0:3].contiguous()
+    rays_d = rays[:, 3:6].contiguous()
+
+    raise NotImplementedError()
+
+@torch.inference_mode()
+def __render_rays_test():
+    raise NotImplementedError
+
+def __render_rays_train():
+    raise NotImplementedError()
