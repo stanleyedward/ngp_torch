@@ -44,6 +44,15 @@ __global__ void ray_aabb_intersect_kernel(
     const float3 half_size = make_float3(half_sizes[v*3+0], half_sizes[v*3+1], half_sizes[v*3+2]);
 
     const float2 t1t2 = _ray_aabb_intersect(ray_o, inv_d, center, half_size);
+
+    if (t1t2.y > 0) { // if ray hits the voxel
+        const int cnt = atomicAdd(&hit_cnt[r], 1);
+        if (cnt < max_hits) {
+            hits_t[r*max_hits*2 + cnt*2] = fmaxf(t1t2.x, 0.0f); //store near point
+            hits_t[r*max_hits*2 + cnt*2 + 1] = t1t2.y; //store far point
+            hits_voxel_idx[r*max_hits + cnt] = v;
+        }
+    }
 }
 
 std::vector<torch::Tensor> ray_aabb_intersect_cu(
