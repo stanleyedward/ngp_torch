@@ -1,7 +1,29 @@
 #include "utils.h"
 #include "helper_math.cuh"
 
+
+__device__ __forceinline__ float2 _ray_aabb_intersect(
+    const float3 ray_o,
+    const float3 inv_d,
+    const float3 center,
+    const float3 half_size
+){
+
+    const float3 t_min = (center-half_size-ray_o)*inv_d;
+    const float3 t_max = (center+half_size-ray_o)*inv_d;
+
+    const float3 _t1 = fminf(t_min, t_max);
+    const float3 _t2 = fmaxf(t_min, t_max);
+    const float near = fmaxf(fmaxf(_t1.x, _t1.y), _t1.z);
+    const float far = fminf(fminf(_t2.x, _t2.y), _t2.z);
+
+    if (near > far) return make_float2(-1.0f, -1.0f); // no intersection
+    return make_float2(near, far);
+}
+
 __global__ void ray_aabb_intersect_kernel(
+    const int N_rays,
+    const int N_voxels,
     const float *rays_o,
     const float *rays_d,
     const float *centers,
@@ -11,7 +33,17 @@ __global__ void ray_aabb_intersect_kernel(
     long *hits_voxel_idx,
     int *hit_cnt
 ){
-    
+    const int r = blockIdx.x * blockDim.x + threadIdx.x;
+    const int v = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (r>=N_rays || v>=N_voxels) return;
+    const float3 ray_o = make_float3(rays_o[r*3+0], rays_o[r*3+1], rays_o[r*3+2]);
+    const float3 ray_d = make_float3(rays_d[r*3+0], rays_d[r*3+1], rays_d[r*3+2]);
+    const float3 inv_d = 1.0f/ray_d;
+    const float3 center = make_float3(centers[v*3+0], centers[v*3+1], centers[v*3+2]);
+    const float3 half_size = make_float3(half_sizes[v*3+0], half_sizes[v*3+1], half_sizes[v*3+2]);
+
+    const float2 t1t2 = _ray_aabb_intersect(ray_o, inv_d, center, half_size);
 }
 
 std::vector<torch::Tensor> ray_aabb_intersect_cu(
@@ -56,6 +88,8 @@ std::vector<torch::Tensor> ray_aabb_intersect_cu(
                              (N_voxels + numThreadsPerBlock.y -1) / numThreadsPerBlock.y,
                              1);
         ray_aabb_intersect_kernel<<<numBlocks, numThreadsPerBlock>>>(
+            N_rays,
+            N_voxels,
             rays_o_contig_ptr,
             rays_d_contig_ptr,
             centers_contig_ptr,
