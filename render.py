@@ -67,5 +67,6 @@ def render(model, rays, **kwagrs):
 def __render_rays_test():
     raise NotImplementedError
 
+@torch.autocast(device_type='cuda')
 def __render_rays_train():
     raise NotImplementedError()
