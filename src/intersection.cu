@@ -65,11 +65,11 @@ std::vector<torch::Tensor> ray_aabb_intersect_cu(
         const int N_rays = rays_o.size(0);
         const int N_voxels = centers.size(0);
 
-        //contig
-        torch::Tensor rays_o_contig = rays_o.contiguous();
-        torch::Tensor rays_d_contig = rays_d.contiguous();
-        torch::Tensor centers_contig = centers.contiguous();
-        torch::Tensor half_sizes_contig = half_sizes.contiguous();
+        // //contig
+        // torch::Tensor rays_o_contig = rays_o.contiguous();
+        // torch::Tensor rays_d_contig = rays_d.contiguous();
+        // torch::Tensor centers_contig = centers.contiguous();
+        // torch::Tensor half_sizes_contig = half_sizes.contiguous();
 
 
         torch::Tensor hits_t = 
@@ -81,15 +81,15 @@ std::vector<torch::Tensor> ray_aabb_intersect_cu(
             torch::zeros({N_rays}, torch::dtype(torch::kInt32).device(rays_o.device()));
 
 
-        //pointers
-        const float *rays_o_contig_ptr = rays_o_contig.data_ptr<float>();
-        const float *rays_d_contig_ptr = rays_d_contig.data_ptr<float>();
-        const float *centers_contig_ptr = centers_contig.data_ptr<float>();
-        const float *half_sizes_contig_ptr = half_sizes_contig.data_ptr<float>();
+        // //pointers
+        // const float *rays_o_contig_ptr = rays_o_contig.data_ptr<float>();
+        // const float *rays_d_contig_ptr = rays_d_contig.data_ptr<float>();
+        // const float *centers_contig_ptr = centers_contig.data_ptr<float>();
+        // const float *half_sizes_contig_ptr = half_sizes_contig.data_ptr<float>();
 
-        float *hits_t_ptr = hits_t.data_ptr<float>();
-        long *hits_voxel_idx_ptr = hits_voxel_idx.data_ptr<long>();
-        int *hit_cnt_ptr = hit_cnt.data_ptr<int>();
+        // float *hits_t_ptr = hits_t.data_ptr<float>();
+        // long *hits_voxel_idx_ptr = hits_voxel_idx.data_ptr<long>();
+        // int *hit_cnt_ptr = hit_cnt.data_ptr<int>();
 
         //launch kernel
         const dim3 numThreadsPerBlock(256, 1, 1);
@@ -99,14 +99,14 @@ std::vector<torch::Tensor> ray_aabb_intersect_cu(
         ray_aabb_intersect_kernel<<<numBlocks, numThreadsPerBlock>>>(
             N_rays,
             N_voxels,
-            rays_o_contig_ptr,
-            rays_d_contig_ptr,
-            centers_contig_ptr,
-            half_sizes_contig_ptr,
+            rays_o.contiguous().data_ptr<float>(),
+            rays_d.contiguous().data_ptr<float>(),
+            centers.contiguous().data_ptr<float>(),
+            half_sizes.contiguous().data_ptr<float>(),
             max_hits,
-            hits_t_ptr,
-            hits_voxel_idx_ptr,
-            hit_cnt_ptr
+            hits_t.data_ptr<float>(),
+            hits_voxel_idx.data_ptr<long>(),
+            hit_cnt.data_ptr<int>()
         );
 
         //sort interesction s from near to far based on t1
