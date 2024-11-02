@@ -1,7 +1,16 @@
 #include "utils.h"
 #include "helper_math.cuh"
 
-__global__ void ray_aabb_intersect_kernel(){
+__global__ void ray_aabb_intersect_kernel(
+    const float *rays_o,
+    const float *rays_d,
+    const float *centers,
+    const float *half_sizes,
+    const int max_hits,
+    float *hits_t,
+    long *hits_voxel_idx,
+    int *hit_cnt
+){
     
 }
 
@@ -47,7 +56,14 @@ std::vector<torch::Tensor> ray_aabb_intersect_cu(
                              (N_voxels + numThreadsPerBlock.y -1) / numThreadsPerBlock.y,
                              1);
         ray_aabb_intersect_kernel<<<numBlocks, numThreadsPerBlock>>>(
-
+            rays_o_contig_ptr,
+            rays_d_contig_ptr,
+            centers_contig_ptr,
+            half_sizes_contig_ptr,
+            max_hits,
+            hits_t_ptr,
+            hits_voxel_idx_ptr,
+            hit_cnt_ptr
         );
 
         //sort interesction s from near to far based on t1
