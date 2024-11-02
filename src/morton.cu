@@ -49,7 +49,7 @@ __global__ void morton3D_kernel(
     indices[n] = __morton3D(x, y, z);
 }
 
-at::Tensor morton3D_cuda(const at::Tensor coords)
+at::Tensor morton3D_cu(const at::Tensor coords)
 {
     TORCH_CHECK(coords.dim() == 2, "coords must be 2D");
     TORCH_CHECK(coords.size(1) == 3, "coords must have 3 coordinates");
@@ -89,7 +89,7 @@ __global__ void morton3D_invert_kernel(
     coords[n * 3 + 2] = __morton3D_invert(ind >> 2);
 }
 
-at::Tensor morton3D_invert_cuda(const at::Tensor indices)
+at::Tensor morton3D_invert_cu(const at::Tensor indices)
 {
     TORCH_CHECK(indices.dim() == 1, "indices must be 1D");
     TORCH_CHECK(indices.dtype() == at::kInt);

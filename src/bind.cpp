@@ -27,7 +27,7 @@ void packbits(
     return packbits_cu(density_grid, density_threshold, density_bitfield);
 }
 
-torch::Tensor ray_aabb_intersect(
+std::vector<torch::Tensor> ray_aabb_intersect(
     const torch::Tensor rays_o,
     const torch::Tensor rays_d,
     const torch::Tensor centers,
@@ -45,4 +45,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m){
   m.def("morton3D", &morton3D);
   m.def("morton3D_invert", &morton3D_invert);
   m.def("packbits", &packbits);
+  m.def("ray_aabb_intersect", &ray_aabb_intersect);
 }
