@@ -5,7 +5,9 @@ from tqdm import tqdm
 import numpy as np
 from PIL import Image
 import rendering
-from custom_functions import RayAABBIntersector
+from custom_functions import RayAABBIntersector, RayMarcher
+
+MAX_SAMPLES = 1024 # fixed!
 
 
 def compute_accumulated_transmittance(alphas):
@@ -81,5 +83,13 @@ def __render_rays_test():
 @torch.autocast(device_type='cuda')
 def __render_rays_train(model, rays_o, rays_d, hits_t, **kwargs):
     results = {}
+    rays_a, xyzs, dirs, deltas, ts = \
+        RayMarcher.apply(
+            rays_o, rays_d, hits_t[:, 0], model.density_bitfield, model.scale,
+            kwargs.get('exp_step_factor', 0.), True, model.grid_size, MAX_SAMPLES)
+        
+    sigmas, rgbs = model(xyzs, dirs)
+    
+    raise NotImplementedError()
     return results
     
