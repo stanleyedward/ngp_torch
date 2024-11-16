@@ -5,6 +5,7 @@ from tqdm import tqdm
 import numpy as np
 from PIL import Image
 import rendering
+from custom_functions import RayAABBIntersector
 
 
 def compute_accumulated_transmittance(alphas):
@@ -72,7 +73,6 @@ def render(model, rays, **kwargs):
     for k, v in results.items():
         results[k] = v.cpu() if kwargs.get('to_cpu', False) else v
     return results
-    raise NotImplementedError()
 
 @torch.inference_mode()
 def __render_rays_test():
