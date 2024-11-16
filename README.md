@@ -16,7 +16,10 @@ in the nerf paper they used spherical harmonics for color instead
 - [x] tcnn hashing
 - [x] tcnn forward
 - [x] occupancy grid updates
-- [ ] cuda ray marching
+- [x] cuda ray marching
+- [ ] cuda vol rendering
+- [ ] full train pipeline
+- [ ] full test pipeline
 - [ ] implement a viewer for training
 
 ### setup 
