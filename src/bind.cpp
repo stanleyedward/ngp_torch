@@ -88,6 +88,27 @@ std::vector<torch::Tensor> raymarching_test(
         grid_size, max_samples, N_samples);
 }
 
+std::vector<torch::Tensor> composite_train_fw(
+    const torch::Tensor sigmas,
+    const torch::Tensor rgbs,
+    const torch::Tensor deltas,
+    const torch::Tensor ts,
+    const torch::Tensor rays_a,
+    const torch::Tensor rgb_bg,
+    const float opacity_threshold
+){
+    CHECK_INPUT(sigmas);
+    CHECK_INPUT(rgbs);
+    CHECK_INPUT(deltas);
+    CHECK_INPUT(ts);
+    CHECK_INPUT(rays_a);
+    CHECK_INPUT(rgb_bg);
+
+    return composite_train_fw_cu(
+                sigmas, rgbs, deltas, ts,
+                rays_a, rgb_bg, opacity_threshold);
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
     m.def("morton3D", &morton3D);
@@ -98,4 +119,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 
     m.def("raymarching_train", &raymarching_train);
     m.def("raymarching_test", &raymarching_test);
+
+    m.def("composite_train_fw", &composite_train_fw);
 }

@@ -45,3 +45,13 @@ std::vector<torch::Tensor> raymarching_test_cu(
     const int grid_size,
     const int max_samples,
     const int N_samples);
+
+std::vector<torch::Tensor> composite_train_fw_cu(
+    const torch::Tensor sigmas,
+    const torch::Tensor rgbs,
+    const torch::Tensor deltas,
+    const torch::Tensor ts,
+    const torch::Tensor rays_a,
+    const torch::Tensor rgb_bg,
+    const float T_threshold
+);
