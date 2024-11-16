@@ -57,10 +57,21 @@ def render_rays(model, ray_origins, ray_directions, hn=0, hf=0.5, nb_bins=192):
     weight_sum = weights.sum(-1).sum(-1)  # regularization for white background
     return c + 1 - weight_sum.unsqueeze(-1)
 
-def render(model, rays, **kwagrs):
+def render(model, rays, **kwargs):
     rays_o = rays[:, 0:3].contiguous()
     rays_d = rays[:, 3:6].contiguous()
+    _, hits_t, _ = \
+        RayAABBIntersector.apply(rays_o, rays_d, model.center, model.half_size, 1)
 
+    if kwargs.get('test_time', False):
+        render_func = __render_rays_test
+    else:
+        render_func = __render_rays_train
+
+    results = render_func(model, rays_o, rays_d, hits_t, **kwargs)
+    for k, v in results.items():
+        results[k] = v.cpu() if kwargs.get('to_cpu', False) else v
+    return results
     raise NotImplementedError()
 
 @torch.inference_mode()

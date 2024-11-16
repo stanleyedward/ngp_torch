@@ -28,23 +28,9 @@ void packbits_cuda(
     const float density_threshold,
     torch::Tensor density_bitfield
 ) {
-    // Input validation
-    // TORCH_CHECK(density_grid.dtype() == torch::kFloat, "density_grid must be float32");
-    // TORCH_CHECK(density_bitfield.dtype() == torch::kUInt8, "density_bitfield must be uint8");
-    // TORCH_INTERNAL_ASSERT(density_grid.device().type() == at::DeviceType::CUDA);
-    // TORCH_INTERNAL_ASSERT(density_bitfield.device().type() == at::DeviceType::CUDA);
-    
-    // Ensure input is contiguous
-    // at::Tensor density_grid_contig = density_grid.contiguous();
-    
+
     // Calculate N (number of bytes in bitfield)
     const int N = density_bitfield.size(0);
-    // TORCH_CHECK(density_grid_contig.numel() == N * 8, 
-    //             "density_grid size must be 8 times the density_bitfield size");
-    
-    // const float* density_grid_ptr = density_grid_contig.data_ptr<float>();
-    // uint8_t* density_bitfield_ptr = density_bitfield.data_ptr<uint8_t>();
-    
     const int numThreadsPerBlock = 256;
     const int numBlocks = (N + numThreadsPerBlock - 1) / numThreadsPerBlock;
     
