@@ -143,6 +143,36 @@ std::vector<torch::Tensor> composite_train_bw(
                 opacity, depth, rgb, rgb_bg, opacity_threshold);
 }
 
+void composite_test_fw(
+    const torch::Tensor sigmas,
+    const torch::Tensor rgbs,
+    const torch::Tensor deltas,
+    const torch::Tensor ts,
+    const torch::Tensor hits_t,
+    const torch::Tensor alive_indices,
+    const float T_threshold,
+    const torch::Tensor N_eff_samples,
+    torch::Tensor opacity,
+    torch::Tensor depth,
+    torch::Tensor rgb
+){
+    CHECK_INPUT(sigmas);
+    CHECK_INPUT(rgbs);
+    CHECK_INPUT(deltas);
+    CHECK_INPUT(ts);
+    CHECK_INPUT(hits_t);
+    CHECK_INPUT(alive_indices);
+    CHECK_INPUT(N_eff_samples);
+    CHECK_INPUT(opacity);
+    CHECK_INPUT(depth);
+    CHECK_INPUT(rgb);
+
+    composite_test_fw_cu(
+        sigmas, rgbs, deltas, ts, hits_t, alive_indices,
+        T_threshold, N_eff_samples,
+        opacity, depth, rgb);
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
     m.def("morton3D", &morton3D);
@@ -156,4 +186,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 
     m.def("composite_train_fw", &composite_train_fw);
     m.def("composite_train_bw", &composite_train_bw);
+
+
+    m.def("composite_test_fw", &composite_test_fw);
 }
