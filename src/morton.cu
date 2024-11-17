@@ -59,10 +59,9 @@ at::Tensor morton3D_cu(const at::Tensor coords)
     const int numBlocks = (N + numThreadsPerBlock - 1) / numThreadsPerBlock;
 
     morton3D_kernel<<<numBlocks, numThreadsPerBlock>>>(
-        N, 
-        coords.contiguous().data_ptr<int>(), 
-        indices.data_ptr<int>()
-    );
+        N,
+        coords.contiguous().data_ptr<int>(),
+        indices.data_ptr<int>());
 
     return indices;
 }
@@ -93,10 +92,9 @@ at::Tensor morton3D_invert_cu(const at::Tensor indices)
     const int numBlocks = (N + numThreadsPerBlock - 1) / numThreadsPerBlock;
 
     morton3D_invert_kernel<<<numBlocks, numThreadsPerBlock>>>(
-        N, 
-        indices.contiguous().data_ptr<int>(), 
-        coords.data_ptr<int>()
-    );
+        N,
+        indices.contiguous().data_ptr<int>(),
+        coords.data_ptr<int>());
 
     return coords;
 }
