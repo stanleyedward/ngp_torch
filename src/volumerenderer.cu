@@ -241,8 +241,10 @@ __global__ void composite_test_fw_kernel(
     torch::PackedTensorAccessor<scalar_t, 1, torch::RestrictPtrTraits, size_t> depth,
     torch::PackedTensorAccessor<scalar_t, 2, torch::RestrictPtrTraits, size_t> rgb)
 {
-    
+
 }
+
+
 void composite_test_fw_cu(
     const torch::Tensor sigmas,
     const torch::Tensor rgbs,
