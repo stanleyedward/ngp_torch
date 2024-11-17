@@ -227,6 +227,22 @@ std::vector<torch::Tensor> composite_train_bw_cu(
     return {dL_dsigmas, dL_drgbs, dL_drgb_bg};
 }
 
+template <typename scalar_t>
+__global__ void composite_test_fw_kernel(
+    const torch::PackedTensorAccessor<scalar_t, 2, torch::RestrictPtrTraits, size_t> sigmas,
+    const torch::PackedTensorAccessor<scalar_t, 3, torch::RestrictPtrTraits, size_t> rgbs,
+    const torch::PackedTensorAccessor<scalar_t, 2, torch::RestrictPtrTraits, size_t> deltas,
+    const torch::PackedTensorAccessor<scalar_t, 2, torch::RestrictPtrTraits, size_t> ts,
+    const torch::PackedTensorAccessor<scalar_t, 2, torch::RestrictPtrTraits, size_t> hits_t,
+    torch::PackedTensorAccessor64<long, 1, torch::RestrictPtrTraits> alive_indices,
+    const scalar_t T_threshold,
+    const torch::PackedTensorAccessor32<int, 1, torch::RestrictPtrTraits> N_eff_samples,
+    torch::PackedTensorAccessor<scalar_t, 1, torch::RestrictPtrTraits, size_t> opacity,
+    torch::PackedTensorAccessor<scalar_t, 1, torch::RestrictPtrTraits, size_t> depth,
+    torch::PackedTensorAccessor<scalar_t, 2, torch::RestrictPtrTraits, size_t> rgb)
+{
+    
+}
 void composite_test_fw_cu(
     const torch::Tensor sigmas,
     const torch::Tensor rgbs,
@@ -238,7 +254,24 @@ void composite_test_fw_cu(
     const torch::Tensor N_eff_samples,
     torch::Tensor opacity,
     torch::Tensor depth,
-    torch::Tensor rgb
-){
-    
+    torch::Tensor rgb)
+{
+    const int N_rays = alive_indices.size(0);
+
+    const int threads = 256, blocks = (N_rays + threads - 1) / threads;
+
+    AT_DISPATCH_FLOATING_TYPES_AND_HALF(sigmas.type(), "composite_test_fw_cu",
+                                        ([&]
+                                         { composite_test_fw_kernel<scalar_t><<<blocks, threads>>>(
+                                               sigmas.packed_accessor<scalar_t, 2, torch::RestrictPtrTraits, size_t>(),
+                                               rgbs.packed_accessor<scalar_t, 3, torch::RestrictPtrTraits, size_t>(),
+                                               deltas.packed_accessor<scalar_t, 2, torch::RestrictPtrTraits, size_t>(),
+                                               ts.packed_accessor<scalar_t, 2, torch::RestrictPtrTraits, size_t>(),
+                                               hits_t.packed_accessor<scalar_t, 2, torch::RestrictPtrTraits, size_t>(),
+                                               alive_indices.packed_accessor64<long, 1, torch::RestrictPtrTraits>(),
+                                               T_threshold,
+                                               N_eff_samples.packed_accessor32<int, 1, torch::RestrictPtrTraits>(),
+                                               opacity.packed_accessor<scalar_t, 1, torch::RestrictPtrTraits, size_t>(),
+                                               depth.packed_accessor<scalar_t, 1, torch::RestrictPtrTraits, size_t>(),
+                                               rgb.packed_accessor<scalar_t, 2, torch::RestrictPtrTraits, size_t>()); }));
 }
