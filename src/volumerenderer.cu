@@ -93,3 +93,21 @@ std::vector<torch::Tensor> composite_train_fw_cu(
             }));
     return {opacity, depth, rgb};
 }
+
+std::vector<torch::Tensor> composite_train_bw_cu(
+    const torch::Tensor dL_dopacity,
+    const torch::Tensor dL_ddepth,
+    const torch::Tensor dL_drgb,
+    const torch::Tensor sigmas,
+    const torch::Tensor rgbs,
+    const torch::Tensor deltas,
+    const torch::Tensor ts,
+    const torch::Tensor rays_a,
+    const torch::Tensor opacity,
+    const torch::Tensor depth,
+    const torch::Tensor rgb,
+    const torch::Tensor rgb_bg,
+    const float T_threshold
+){
+
+}

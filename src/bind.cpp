@@ -109,6 +109,40 @@ std::vector<torch::Tensor> composite_train_fw(
                 rays_a, rgb_bg, opacity_threshold);
 }
 
+std::vector<torch::Tensor> composite_train_bw(
+    const torch::Tensor dL_dopacity,
+    const torch::Tensor dL_ddepth,
+    const torch::Tensor dL_drgb,
+    const torch::Tensor sigmas,
+    const torch::Tensor rgbs,
+    const torch::Tensor deltas,
+    const torch::Tensor ts,
+    const torch::Tensor rays_a,
+    const torch::Tensor opacity,
+    const torch::Tensor depth,
+    const torch::Tensor rgb,
+    const torch::Tensor rgb_bg,
+    const float opacity_threshold
+){
+    CHECK_INPUT(dL_dopacity);
+    CHECK_INPUT(dL_ddepth);
+    CHECK_INPUT(dL_drgb);
+    CHECK_INPUT(sigmas);
+    CHECK_INPUT(rgbs);
+    CHECK_INPUT(deltas);
+    CHECK_INPUT(ts);
+    CHECK_INPUT(rays_a);
+    CHECK_INPUT(opacity);
+    CHECK_INPUT(depth);
+    CHECK_INPUT(rgb);
+    CHECK_INPUT(rgb_bg);
+
+    return composite_train_bw_cu(
+                dL_dopacity, dL_ddepth, dL_drgb,
+                sigmas, rgbs, deltas, ts, rays_a,
+                opacity, depth, rgb, rgb_bg, opacity_threshold);
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
     m.def("morton3D", &morton3D);
@@ -121,4 +155,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
     m.def("raymarching_test", &raymarching_test);
 
     m.def("composite_train_fw", &composite_train_fw);
+    m.def("composite_train_bw", &composite_train_bw);
 }
