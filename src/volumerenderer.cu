@@ -241,9 +241,7 @@ __global__ void composite_test_fw_kernel(
     torch::PackedTensorAccessor<scalar_t, 1, torch::RestrictPtrTraits, size_t> depth,
     torch::PackedTensorAccessor<scalar_t, 2, torch::RestrictPtrTraits, size_t> rgb)
 {
-
 }
-
 
 void composite_test_fw_cu(
     const torch::Tensor sigmas,
@@ -260,11 +258,12 @@ void composite_test_fw_cu(
 {
     const int N_rays = alive_indices.size(0);
 
-    const int threads = 256, blocks = (N_rays + threads - 1) / threads;
+    const int numThreadsPerBlock = 256;
+    const int numBlocks = (N_rays + numThreadsPerBlock - 1) / numThreadsPerBlock;
 
     AT_DISPATCH_FLOATING_TYPES_AND_HALF(sigmas.type(), "composite_test_fw_cu",
                                         ([&]
-                                         { composite_test_fw_kernel<scalar_t><<<blocks, threads>>>(
+                                         { composite_test_fw_kernel<scalar_t><<<numBlocks, numThreadsPerBlock>>>(
                                                sigmas.packed_accessor<scalar_t, 2, torch::RestrictPtrTraits, size_t>(),
                                                rgbs.packed_accessor<scalar_t, 3, torch::RestrictPtrTraits, size_t>(),
                                                deltas.packed_accessor<scalar_t, 2, torch::RestrictPtrTraits, size_t>(),

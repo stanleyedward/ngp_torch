@@ -95,8 +95,8 @@ std::vector<torch::Tensor> composite_train_fw(
     const torch::Tensor ts,
     const torch::Tensor rays_a,
     const torch::Tensor rgb_bg,
-    const float opacity_threshold
-){
+    const float opacity_threshold)
+{
     CHECK_INPUT(sigmas);
     CHECK_INPUT(rgbs);
     CHECK_INPUT(deltas);
@@ -105,8 +105,8 @@ std::vector<torch::Tensor> composite_train_fw(
     CHECK_INPUT(rgb_bg);
 
     return composite_train_fw_cu(
-                sigmas, rgbs, deltas, ts,
-                rays_a, rgb_bg, opacity_threshold);
+        sigmas, rgbs, deltas, ts,
+        rays_a, rgb_bg, opacity_threshold);
 }
 
 std::vector<torch::Tensor> composite_train_bw(
@@ -122,8 +122,8 @@ std::vector<torch::Tensor> composite_train_bw(
     const torch::Tensor depth,
     const torch::Tensor rgb,
     const torch::Tensor rgb_bg,
-    const float opacity_threshold
-){
+    const float opacity_threshold)
+{
     CHECK_INPUT(dL_dopacity);
     CHECK_INPUT(dL_ddepth);
     CHECK_INPUT(dL_drgb);
@@ -138,9 +138,9 @@ std::vector<torch::Tensor> composite_train_bw(
     CHECK_INPUT(rgb_bg);
 
     return composite_train_bw_cu(
-                dL_dopacity, dL_ddepth, dL_drgb,
-                sigmas, rgbs, deltas, ts, rays_a,
-                opacity, depth, rgb, rgb_bg, opacity_threshold);
+        dL_dopacity, dL_ddepth, dL_drgb,
+        sigmas, rgbs, deltas, ts, rays_a,
+        opacity, depth, rgb, rgb_bg, opacity_threshold);
 }
 
 void composite_test_fw(
@@ -154,8 +154,8 @@ void composite_test_fw(
     const torch::Tensor N_eff_samples,
     torch::Tensor opacity,
     torch::Tensor depth,
-    torch::Tensor rgb
-){
+    torch::Tensor rgb)
+{
     CHECK_INPUT(sigmas);
     CHECK_INPUT(rgbs);
     CHECK_INPUT(deltas);
@@ -186,7 +186,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 
     m.def("composite_train_fw", &composite_train_fw);
     m.def("composite_train_bw", &composite_train_bw);
-
 
     m.def("composite_test_fw", &composite_test_fw);
 }
