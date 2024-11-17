@@ -37,4 +37,14 @@ class RayMarcher(torch.autograd.Function):
         ts = ts[:total_samples]
         
         return rays_a, xyzs, dirs, deltas, ts
+    
+class VolumeRenderer(torch.autograd.Function):
+    @staticmethod
+    def foward():
+        pass
+    
+    @staticmethod
+    def backward():
+        pass
+
         

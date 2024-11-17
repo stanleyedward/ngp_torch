@@ -5,7 +5,7 @@ from tqdm import tqdm
 import numpy as np
 from PIL import Image
 import rendering
-from custom_functions import RayAABBIntersector, RayMarcher
+from custom_functions import RayAABBIntersector, RayMarcher, VolumeRenderer
 
 MAX_SAMPLES = 1024 # fixed!
 
@@ -89,7 +89,9 @@ def __render_rays_train(model, rays_o, rays_d, hits_t, **kwargs):
             kwargs.get('exp_step_factor', 0.), True, model.grid_size, MAX_SAMPLES)
         
     sigmas, rgbs = model(xyzs, dirs)
-    
-    raise NotImplementedError()
+    rgb_bg = torch.ones(3, device=rays_o.device)
+    results['opacity'], results['depth'], results['rgb'] = \
+        VolumeRenderer.apply(sigmas, rgbs, deltas, ts,
+                             rays_a, rgb_bg, kwargs.get('T_threshold', 1e-4))
     return results
     
