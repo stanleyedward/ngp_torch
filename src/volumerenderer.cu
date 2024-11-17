@@ -94,6 +94,11 @@ std::vector<torch::Tensor> composite_train_fw_cu(
     return {opacity, depth, rgb};
 }
 
+template <typename scalar_t>
+__global__ void composite_train_bw_kernel(){
+
+}
+
 std::vector<torch::Tensor> composite_train_bw_cu(
     const torch::Tensor dL_dopacity,
     const torch::Tensor dL_ddepth,
