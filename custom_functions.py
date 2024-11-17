@@ -40,11 +40,25 @@ class RayMarcher(torch.autograd.Function):
     
 class VolumeRenderer(torch.autograd.Function):
     @staticmethod
-    def foward():
-        pass
+    def forward(ctx, sigmas, rgbs, deltas, ts, rays_a, rgb_bg, T_threshold):
+        opacity, depth, rgb = \
+            rendering.composite_train_fw(sigmas, rgbs, deltas, ts,
+                                    rays_a, rgb_bg, T_threshold)
+        ctx.save_for_backward(sigmas, rgbs, deltas, ts, rays_a,
+                              opacity, depth, rgb, rgb_bg)
+        ctx.T_threshold = T_threshold
+        return opacity, depth, rgb
     
     @staticmethod
-    def backward():
-        pass
+    def backward(ctx, dL_dopacity, dL_ddepth, dL_drgb):
+        sigmas, rgbs, deltas, ts, rays_a, \
+        opacity, depth, rgb, rgb_bg = ctx.saved_tensors
+        dL_dsigmas, dL_drgbs, dL_drgb_bg = \
+            rendering.composite_train_bw(dL_dopacity, dL_ddepth,
+                                    dL_drgb, sigmas, rgbs, deltas, ts,
+                                    rays_a,
+                                    opacity, depth, rgb, rgb_bg,
+                                    ctx.T_threshold)
+        return dL_dsigmas, dL_drgbs, None, None, None, dL_drgb_bg, None
 
         
