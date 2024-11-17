@@ -116,65 +116,67 @@ __global__ void composite_train_bw_kernel(
     torch::PackedTensorAccessor<scalar_t, 1, torch::RestrictPtrTraits, size_t> dL_drgb_bg)
 {
     const int n = blockIdx.x * blockDim.x + threadIdx.x;
-    if (n>= opacity.size(0)) return;
+    if (n >= opacity.size(0))
+        return;
 
-    const int ray_idx = rays_a[n][0]; 
+    const int ray_idx = rays_a[n][0];
     const int start_idx = rays_a[n][1];
     const int N_samples = rays_a[n][2];
 
-    if (N_samples==0 || start_idx+N_samples>=sigmas.size(0)){ // no hit
+    if (N_samples == 0 || start_idx + N_samples >= sigmas.size(0))
+    { // no hit
         dL_drgb_bg[0] = dL_drgb[ray_idx][0];
         dL_drgb_bg[1] = dL_drgb[ray_idx][1];
         dL_drgb_bg[2] = dL_drgb[ray_idx][2];
         return;
     }
     // front to back compositing
-        int samples = 0;
-        scalar_t R = rgb[ray_idx][0];
-        scalar_t G = rgb[ray_idx][1];
-        scalar_t B = rgb[ray_idx][2];
-        scalar_t O = opacity[ray_idx];
-        scalar_t D = depth[ray_idx];
-        scalar_t T = 1.0f;
-        scalar_t r = 0.0f;
-        scalar_t g = 0.0f;
-        scalar_t b = 0.0f;
-        scalar_t op = 0.0f;
-        scalar_t t = 0.0f;
-        scalar_t d = 0.0f;
+    int samples = 0;
+    scalar_t R = rgb[ray_idx][0];
+    scalar_t G = rgb[ray_idx][1];
+    scalar_t B = rgb[ray_idx][2];
+    scalar_t O = opacity[ray_idx];
+    scalar_t D = depth[ray_idx];
+    scalar_t T = 1.0f;
+    scalar_t r = 0.0f;
+    scalar_t g = 0.0f;
+    scalar_t b = 0.0f;
+    scalar_t op = 0.0f;
+    scalar_t t = 0.0f;
+    scalar_t d = 0.0f;
 
-        while (samples < N_samples) {
-            const int s = start_idx + samples;
-            const scalar_t a = 1.0f - __expf(-sigmas[s]*deltas[s]);
-            const scalar_t w = a * T;
+    while (samples < N_samples)
+    {
+        const int s = start_idx + samples;
+        const scalar_t a = 1.0f - __expf(-sigmas[s] * deltas[s]);
+        const scalar_t w = a * T;
 
-            r += w*rgbs[s][0]; 
-            g += w*rgbs[s][1]; 
-            b += w*rgbs[s][2];
-            d += w*ts[s];
-            op += w;
-            T *= 1.0f-a;
+        r += w * rgbs[s][0];
+        g += w * rgbs[s][1];
+        b += w * rgbs[s][2];
+        d += w * ts[s];
+        op += w;
+        T *= 1.0f - a;
 
-            // compute gradients by math...
-            dL_drgbs[s][0] = dL_drgb[ray_idx][0]*w;
-            dL_drgbs[s][1] = dL_drgb[ray_idx][1]*w;
-            dL_drgbs[s][2] = dL_drgb[ray_idx][2]*w;
+        // compute gradients by math...
+        dL_drgbs[s][0] = dL_drgb[ray_idx][0] * w;
+        dL_drgbs[s][1] = dL_drgb[ray_idx][1] * w;
+        dL_drgbs[s][2] = dL_drgb[ray_idx][2] * w;
 
-            dL_dsigmas[s] = deltas[s] * (
-                dL_drgb[ray_idx][0]*(rgbs[s][0]*T-(R-r)) + 
-                dL_drgb[ray_idx][1]*(rgbs[s][1]*T-(G-g)) + 
-                dL_drgb[ray_idx][2]*(rgbs[s][2]*T-(B-b)) + 
-                dL_dopacity[ray_idx]*(1-O) + 
-                dL_ddepth[ray_idx]*(t*T-(D-d))
-            );
+        dL_dsigmas[s] = deltas[s] * (dL_drgb[ray_idx][0] * (rgbs[s][0] * T - (R - r)) +
+                                     dL_drgb[ray_idx][1] * (rgbs[s][1] * T - (G - g)) +
+                                     dL_drgb[ray_idx][2] * (rgbs[s][2] * T - (B - b)) +
+                                     dL_dopacity[ray_idx] * (1 - O) +
+                                     dL_ddepth[ray_idx] * (t * T - (D - d)));
 
-            dL_drgb_bg[0] = dL_drgb[ray_idx][0]*(1-O);
-            dL_drgb_bg[1] = dL_drgb[ray_idx][1]*(1-O);
-            dL_drgb_bg[2] = dL_drgb[ray_idx][2]*(1-O);
+        dL_drgb_bg[0] = dL_drgb[ray_idx][0] * (1 - O);
+        dL_drgb_bg[1] = dL_drgb[ray_idx][1] * (1 - O);
+        dL_drgb_bg[2] = dL_drgb[ray_idx][2] * (1 - O);
 
-            if (T <= T_threshold) break; // ray has enough opacity
-            samples++;
-        }
+        if (T <= T_threshold)
+            break; // ray has enough opacity
+        samples++;
+    }
 }
 
 std::vector<torch::Tensor> composite_train_bw_cu(
