@@ -1,13 +1,9 @@
 import torch
-from torch import nn
-from torch.utils.data import DataLoader
-from tqdm import tqdm
-import numpy as np
-from PIL import Image
 import rendering
+from einops import rearrange
 from custom_functions import RayAABBIntersector, RayMarcher, VolumeRenderer
 
-MAX_SAMPLES = 1024 # fixed!
+MAX_SAMPLES = 1024 
 
 
 def compute_accumulated_transmittance(alphas):
@@ -76,9 +72,59 @@ def render(model, rays, **kwargs):
         results[k] = v.cpu() if kwargs.get('to_cpu', False) else v
     return results
 
-@torch.inference_mode()
-def __render_rays_test():
-    raise NotImplementedError
+@torch.no_grad()
+def __render_rays_test(model, rays_o, rays_d, hits_t, **kwargs):
+
+    results = {}
+
+    # output tensors to be filled in
+    N_rays = len(rays_o)
+    device =rays_o.device
+    opacity = torch.zeros(N_rays, device=device)
+    depth = torch.zeros(N_rays, device=device)
+    rgb = torch.zeros(N_rays, 3, device=device)
+
+    samples = 0
+    alive_indices = torch.arange(N_rays, device=device)
+
+    while samples < MAX_SAMPLES:
+        N_alive = len(alive_indices)
+        if N_alive==0: break
+
+        # the number of samples to add on each ray
+        N_samples = max(min(N_rays//N_alive, 64), 1)
+        samples += N_samples
+
+        xyzs, dirs, deltas, ts, N_eff_samples = \
+            rendering.raymarching_test(rays_o, rays_d, hits_t[:, 0], alive_indices,
+                                  model.density_bitfield,
+                                  model.scale, kwargs.get('exp_step_factor', 0.),
+                                  model.grid_size, MAX_SAMPLES, N_samples)
+        xyzs = rearrange(xyzs, 'n1 n2 c -> (n1 n2) c')
+        dirs = rearrange(dirs, 'n1 n2 c -> (n1 n2) c')
+        valid_mask = ~torch.all(dirs==0, dim=1)
+        if valid_mask.sum()==0: break
+
+        sigmas = torch.zeros(len(xyzs), device=device)
+        rgbs = torch.zeros(len(xyzs), 3, device=device)
+        _sigmas, _rgbs = model(xyzs[valid_mask], dirs[valid_mask])
+        sigmas[valid_mask] = _sigmas.float()
+        rgbs[valid_mask] = _rgbs.float()
+        sigmas = rearrange(sigmas, '(n1 n2) -> n1 n2', n2=N_samples)
+        rgbs = rearrange(rgbs, '(n1 n2) c -> n1 n2 c', n2=N_samples)
+
+        rendering.composite_test_fw(
+            sigmas, rgbs, deltas, ts,
+            hits_t[:, 0], alive_indices, kwargs.get('T_threshold', 1e-4),
+            N_eff_samples, opacity, depth, rgb)
+        alive_indices = alive_indices[alive_indices>=0]
+
+    rgb_bg = torch.ones(3, device=device)
+    results['opacity'] = opacity
+    results['depth'] = depth
+    results['rgb'] = rgb + rgb_bg*rearrange(1-opacity, 'n -> n 1')
+
+    return results
 
 @torch.autocast(device_type='cuda')
 def __render_rays_train(model, rays_o, rays_d, hits_t, **kwargs):
