@@ -240,35 +240,50 @@ class FullyFusedNGP(nn.Module):
             cells += [(torch.cat([indices1, indices2]), torch.cat([coords1, coords2]))]
             
         return cells
+    
     @torch.no_grad()
     def update_density_grid(self, density_threshold, warmup=False, decay=0.95):
-        #create temp grid
         tmp_grid = -torch.ones_like(self.density_grid)
-        if warmup: #first 256 steps
-            cells = self.sample_all_cells()
-        else:
-            M = self.grid_size**3//4
-            cells = self.sample_uniform_and_occupied_cells(M)
-        #infer sigmas
-        for c in range(self.cascades):
-            indices, coords = cells[c]
-            xyzs = coords.float()/(self.grid_size-1)*2-1 # in [-1, 1]
-            s = min(2**c, self.scale)
-            half_grid_size = s/self.grid_size
-            # scale to current cascade's resolution
-            xyzs_c = xyzs * (s-half_grid_size)
-            # add noise in [-hgs, hgs]
-            xyzs_c += (torch.rand_like(xyzs_c)*2-1) * half_grid_size
-            tmp_grid[c, indices] = self.density(xyzs_c)
-        
-        # ema update
-        valid_mask = (self.density_grid>=0) & (tmp_grid>=0)
-        self.density_grid[valid_mask] = \
-            torch.maximum(self.density_grid[valid_mask]*decay, tmp_grid[valid_mask])
+
+        # Sample grid cells based on the warmup status
+        if warmup:  # Warmup phase 
+            sampled_cells = self.sample_all_cells()
+        else:  # Sample a mix of uniform and occupied cells
+            sample_count = self.grid_size**3 // 4
+            sampled_cells = self.sample_uniform_and_occupied_cells(sample_count)
+
+        for cascade_idx in range(self.cascades):
+            indices, coords = sampled_cells[cascade_idx]
+
+            normalized_coords = coords.float() / (self.grid_size - 1) * 2 - 1
+
+            cascade_scale = min(2**cascade_idx, self.scale)
+            half_grid_size = cascade_scale / self.grid_size
+
+            # scale coordinates to the current cascade's resolution
+            cascade_coords = normalized_coords * (cascade_scale - half_grid_size)
+
+            # addrandom noise for sub-voxel sampling
+            cascade_coords += (torch.rand_like(cascade_coords) * 2 - 1) * half_grid_size
+
+            tmp_grid[cascade_idx, indices] = self.density(cascade_coords)
+
+        # exponential moving average ema update for the density grid
+        valid_mask = (self.density_grid >= 0) & (tmp_grid >= 0)
+        self.density_grid[valid_mask] = torch.maximum(
+            self.density_grid[valid_mask] * decay,
+            tmp_grid[valid_mask]
+        )
+
+        # Compute the mean density of the updated grid
         self.mean_density = self.density_grid.clamp(min=0).mean().item()
-        
-        #packbits
-        rendering.packbits(self.density_grid, min(self.mean_density, density_threshold),
-                      self.density_bitfield)
+
+        # Pack the density grid into a bitfield for efficient storage
+        rendering.packbits(
+            self.density_grid,
+            min(self.mean_density, density_threshold),
+            self.density_bitfield
+        )
+
             
         

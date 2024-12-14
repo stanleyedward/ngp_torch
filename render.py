@@ -129,15 +129,13 @@ def __render_rays_test(model, rays_o, rays_d, hits_t, **kwargs):
 @torch.autocast(device_type='cuda')
 def __render_rays_train(model, rays_o, rays_d, hits_t, **kwargs):
     results = {}
-    rays_a, xyzs, dirs, deltas, ts = \
-        RayMarcher.apply(
-            rays_o, rays_d, hits_t[:, 0], model.density_bitfield, model.scale,
-            kwargs.get('exp_step_factor', 0.), True, model.grid_size, MAX_SAMPLES)
+    rays_a, xyzs, dirs, deltas, ts = RayMarcher.apply(
+        rays_o, rays_d, hits_t[:, 0], model.density_bitfield, model.scale,
+        kwargs.get('exp_step_factor', 0.), True, model.grid_size, MAX_SAMPLES)
         
     sigmas, rgbs = model(xyzs, dirs)
     rgb_bg = torch.ones(3, device=rays_o.device)
-    results['opacity'], results['depth'], results['rgb'] = \
-        VolumeRenderer.apply(sigmas, rgbs, deltas, ts,
-                             rays_a, rgb_bg, kwargs.get('T_threshold', 1e-4))
+    results['opacity'], results['depth'], results['rgb'] = VolumeRenderer.apply(
+        sigmas, rgbs, deltas, ts, rays_a, rgb_bg, kwargs.get('T_threshold', 1e-4))
     return results
     
